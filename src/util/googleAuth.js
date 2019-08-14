@@ -11,7 +11,7 @@ var DISCOVERY_DOCS = ['https://sheets.googleapis.com/$discovery/rest?version=v4'
 // Authorization scopes required by the API multiple scopes can be
 // included, separated by spaces.
 var SCOPES = 'https://www.googleapis.com/auth/spreadsheets.readonly'
-
+ 
 const GoogleAuth = function () {
   const self = {}
   self.isAuthorizedCallbacks = []
@@ -63,44 +63,29 @@ const GoogleAuth = function () {
   }
 
   self.initClient = function () {
-    gapi.client.init({
-      apiKey: API_KEY,
-      clientId: CLIENT_ID,
-      discoveryDocs: DISCOVERY_DOCS,
-      scope: SCOPES
-    }).then(function () {
-      self.loadedCallback()
-      // Listen for sign-in state changes.
-      gapi.auth2.getAuthInstance().isSignedIn.listen(function (data) { self.updateSigninStatus(data) })
+    gapi.client
+      .init({
+        apiKey: API_KEY,
+        clientId: CLIENT_ID,
+        discoveryDocs: DISCOVERY_DOCS,
+        scope: SCOPES
+      })
+      .then(function () {
+        self.loadedCallback()
+        // Listen for sign-in state changes.
+        gapi.auth2.getAuthInstance().isSignedIn.listen(function (data) { self.updateSigninStatus(data) })
 
-      // Handle the initial sign-in state.
-      self.updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get())
-    })
+        // Handle the initial sign-in state.
+        self.updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get())
+      })
   }
 
   self.logout = function () {
     gapi.auth2.getAuthInstance().signOut()
   }
 
-  self.geEmail = _ => {
-    const isLoggedIn = gapi.auth2.getAuthInstance().isSignedIn.get()
-    if (isLoggedIn) {
-      return gapi.auth2.getAuthInstance().currentUser.get().getBasicProfile().getEmail()
-    }
-  }
-
-  self.login = function (callback, force = false) {
-    if (force) {
-      gapi.auth2.getAuthInstance().signIn({ prompt: 'select_account' }).then(callback)
-      return
-    }
-
-    const isLoggedIn = gapi.auth2.getAuthInstance().isSignedIn.get()
-    if (isLoggedIn) {
-      callback()
-    } else {
-      gapi.auth2.getAuthInstance().signIn().then(callback)
-    }
+  self.getProfile = function () {
+    return self.profile
   }
 
   return self
