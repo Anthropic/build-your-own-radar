@@ -10,5 +10,8 @@ coverage/
 .idea/
 .DS_Store
 
+*.env
+!template.env
+
 spec/end_to_end_tests/reports/
 cypress/

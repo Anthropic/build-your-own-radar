@@ -1,9 +1,9 @@
 'use strict'
-
 const webpack = require('webpack')
 const path = require('path')
 const buildPath = path.join(__dirname, './dist')
 const args = require('yargs').argv
+const truthy = require('truthy')
 
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const MiniCssExtractPlugin = require('mini-css-extract-plugin')
@@ -15,7 +15,7 @@ let isDev = args.dev
 let env = args.envFile
 if (env) {
   // Load env file
-  require('dotenv').config({ path: env })
+  require('dotenv').config({ path: env });
 }
 
 let main = ['./src/site.js']
@@ -42,7 +42,12 @@ let plugins = [
   }),
   new webpack.DefinePlugin({
     'process.env.CLIENT_ID': JSON.stringify(process.env.CLIENT_ID),
-    'process.env.API_KEY': JSON.stringify(process.env.API_KEY)
+    'process.env.API_KEY': JSON.stringify(process.env.API_KEY),
+    'process.env.USE_AUTHENTICATION': truthy(process.env.USE_AUTHENTICATION),
+    'process.env.USE_GOOGLESHEET': truthy(process.env.USE_GOOGLESHEET),
+    'process.env.GOOGLE_SHEET': JSON.stringify(process.env.GOOGLE_SHEET),
+    'process.env.RING_LABELS': JSON.stringify(process.env.RING_LABELS),
+    'process.env.SEGMENT_LABELS': process.env.SEGMENT_LABELS
   })
 ]
 
