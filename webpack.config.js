@@ -15,7 +15,7 @@ let isDev = args.dev
 let env = args.envFile
 if (env) {
   // Load env file
-  require('dotenv').config({ path: env });
+  require('dotenv').config({ path: env })
 }
 
 let main = ['./src/site.js']
