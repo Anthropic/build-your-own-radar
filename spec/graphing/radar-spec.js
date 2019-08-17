@@ -1,12 +1,14 @@
 // This references very old code that no longer exists
 // the tests for graphing will have to be rewritten
-require('../../src/graphing/radar.js')
+const d3 = require('d3')
+const Radar = require('../../src/models/radar.js')
+const GraphingRadar = require('../../src/graphing/radar.js')
 
-xdescribe('tr.graphing.Radar', function () {
+describe('GraphingRadar', function () {
   var radar
 
   beforeEach(function () {
-    radar = new tr.models.Radar()
+    radar = new Radar()
     spyOn(radar, 'rings').and.returnValue([])
   })
 
@@ -14,30 +16,30 @@ xdescribe('tr.graphing.Radar', function () {
     it('appends the svg', function () {
       var radarGraph, selection
 
-      radarGraph = new tr.graphing.Radar(500, radar)
+      radarGraph = new GraphingRadar(500, radar)
       selection = { append: jasmine.createSpy() }
       spyOn(d3, 'select').and.returnValue(selection)
 
       radarGraph.init()
 
       expect(selection.append).toHaveBeenCalledWith('svg')
-    }).pend('This references very old code that no longer exists the tests for graphing will have to be rewritten')
+    }) // .pend('This references very old code that no longer exists the tests for graphing will have to be rewritten')
 
     it('selects body if no selector provided', function () {
       var radarGraph
 
-      radarGraph = new tr.graphing.Radar(500, radar)
+      radarGraph = new GraphingRadar(500, radar)
       spyOn(d3, 'select').and.callThrough()
 
       radarGraph.init()
 
       expect(d3.select).toHaveBeenCalledWith('body')
-    }).pend('This references very old code that no longer exists the tests for graphing will have to be rewritten')
+    }) // .pend('This references very old code that no longer exists the tests for graphing will have to be rewritten')
 
     it('selects the selector if provided', function () {
       var radarGraph
 
-      radarGraph = new tr.graphing.Radar(500, radar)
+      radarGraph = new GraphingRadar(500, radar)
       spyOn(d3, 'select').and.callThrough()
 
       radarGraph.init('#radar')
@@ -49,7 +51,7 @@ xdescribe('tr.graphing.Radar', function () {
   it('sets the size', function () {
     var svg, radarGraph
 
-    radarGraph = new tr.graphing.Radar(500, radar)
+    radarGraph = new GraphingRadar(500, radar)
     radarGraph.init()
 
     svg = radarGraph.svg()
@@ -65,7 +67,7 @@ xdescribe('tr.graphing.Radar', function () {
     it('plots a vertical line in the center', function () {
       var radarGraph, svg
 
-      radarGraph = new tr.graphing.Radar(500, radar)
+      radarGraph = new GraphingRadar(500, radar)
       radarGraph.init()
 
       svg = radarGraph.svg()
@@ -85,7 +87,7 @@ xdescribe('tr.graphing.Radar', function () {
     it('plots a horizontal line in the center', function () {
       var svg, radarGraph
 
-      radarGraph = new tr.graphing.Radar(500, radar)
+      radarGraph = new GraphingRadar(500, radar)
       radarGraph.init()
 
       svg = radarGraph.svg()
@@ -109,12 +111,12 @@ xdescribe('tr.graphing.Radar', function () {
     beforeEach(function () {
       var radar
 
-      radar = new tr.models.Radar()
+      radar = new Radar()
       spyOn(radar, 'rings').and.returnValue([
         new tr.models.Ring('Adopt'),
         new tr.models.Ring('Hold')
       ])
-      radarGraph = new tr.graphing.Radar(500, radar)
+      radarGraph = new GraphingRadar(500, radar)
       radarGraph.init()
 
       svg = radarGraph.svg()

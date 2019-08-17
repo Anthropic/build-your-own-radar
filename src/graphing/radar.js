@@ -9,12 +9,23 @@ const RingCalculator = require('../util/ringCalculator')
 const QueryParams = require('../util/queryParamProcessor')
 
 const MIN_BLIP_WIDTH = 12
-const ANIMATION_DURATION = 1000
 
 const Radar = function (size, radar) {
-  var svg, radarElement, quadrantButtons, buttonsGroup, header, alternativeDiv
+  let svg
+  let currentBlipsPage
+  let searchBlipsPage
+  let searchBlipsHistory
+  let searchBlipsList
+  let quadrantButtons
+  let buttonsGroup
+  let header
+  let main
+  let nav
+  let quadrantByName = {}
+  let intro
+  let alternativeDiv
 
-  var tip = d3tip().attr('class', 'd3-tip').html(function (text) {
+  const tip = d3tip().attr('class', 'd3-tip').html(function (text) {
     return text
   })
 
@@ -296,24 +307,6 @@ const Radar = function (size, radar) {
     blipListItem.on('click', clickBlip)
   }
 
-  function removeHomeLink () {
-    d3.select('.home-link').remove()
-  }
-
-  function createHomeLink (pageElement) {
-    if (pageElement.select('.home-link').empty()) {
-      pageElement.insert('div', 'div#alternative-buttons')
-        .html('&#171; Back to Radar home')
-        .classed('home-link', true)
-        .classed('selected', true)
-        .on('click', redrawFullRadar)
-        .append('g')
-        .attr('fill', '#626F87')
-        .append('path')
-        .attr('d', 'M27.6904224,13.939279 C27.6904224,13.7179572 27.6039633,13.5456925 27.4314224,13.4230122 L18.9285959,6.85547454 C18.6819796,6.65886965 18.410898,6.65886965 18.115049,6.85547454 L9.90776939,13.4230122 C9.75999592,13.5456925 9.68592041,13.7179572 9.68592041,13.939279 L9.68592041,25.7825947 C9.68592041,25.979501 9.74761224,26.1391059 9.87092041,26.2620876 C9.99415306,26.3851446 10.1419265,26.4467108 10.3145429,26.4467108 L15.1946918,26.4467108 C15.391698,26.4467108 15.5518551,26.3851446 15.6751633,26.2620876 C15.7984714,26.1391059 15.8600878,25.979501 15.8600878,25.7825947 L15.8600878,18.5142424 L21.4794061,18.5142424 L21.4794061,25.7822933 C21.4794061,25.9792749 21.5410224,26.1391059 21.6643306,26.2620876 C21.7876388,26.3851446 21.9477959,26.4467108 22.1448776,26.4467108 L27.024951,26.4467108 C27.2220327,26.4467108 27.3821898,26.3851446 27.505498,26.2620876 C27.6288061,26.1391059 27.6904224,25.9792749 27.6904224,25.7822933 L27.6904224,13.939279 Z M18.4849735,0.0301425662 C21.0234,0.0301425662 23.4202449,0.515814664 25.6755082,1.48753564 C27.9308469,2.45887984 29.8899592,3.77497963 31.5538265,5.43523218 C33.2173918,7.09540937 34.5358755,9.05083299 35.5095796,11.3015031 C36.4829061,13.5518717 36.9699469,15.9439104 36.9699469,18.4774684 C36.9699469,20.1744196 36.748098,21.8101813 36.3044755,23.3844521 C35.860551,24.9584216 35.238498,26.4281731 34.4373347,27.7934053 C33.6362469,29.158336 32.6753041,30.4005112 31.5538265,31.5197047 C30.432349,32.6388982 29.1876388,33.5981853 27.8199224,34.3973401 C26.4519041,35.1968717 24.9791531,35.8176578 23.4016694,36.2606782 C21.8244878,36.7033971 20.1853878,36.9247943 18.4849735,36.9247943 C16.7841816,36.9247943 15.1453837,36.7033971 13.5679755,36.2606782 C11.9904918,35.8176578 10.5180429,35.1968717 9.15002449,34.3973401 C7.78223265,33.5978839 6.53752245,32.6388982 5.41612041,31.5197047 C4.29464286,30.4005112 3.33339796,29.158336 2.53253673,27.7934053 C1.73144898,26.4281731 1.10909388,24.9584216 0.665395918,23.3844521 C0.22184898,21.8101813 0,20.1744196 0,18.4774684 C0,16.7801405 0.22184898,15.1446802 0.665395918,13.5704847 C1.10909388,11.9962138 1.73144898,10.5267637 2.53253673,9.16153157 C3.33339796,7.79652546 4.29464286,6.55435031 5.41612041,5.43523218 C6.53752245,4.3160387 7.78223265,3.35675153 9.15002449,2.55752138 C10.5180429,1.75806517 11.9904918,1.13690224 13.5679755,0.694183299 C15.1453837,0.251464358 16.7841816,0.0301425662 18.4849735,0.0301425662 L18.4849735,0.0301425662 Z')
-    }
-  }
-
   function removeRadarLegend () {
     d3.select('.legend').remove()
   }
@@ -331,13 +324,13 @@ const Radar = function (size, radar) {
     var y = 10
 
     if (order === 'first') {
-      x = 4 * size / 5
-      y = 1 * size / 5
+      x = 1 * size / 5 - 15
+      y = 1 * size / 5 - 20
     }
 
     if (order === 'second') {
-      x = 1 * size / 5 - 15
-      y = 1 * size / 5 - 20
+      x = 4 * size / 5
+      y = 1 * size / 5
     }
 
     if (order === 'third') {
@@ -352,7 +345,6 @@ const Radar = function (size, radar) {
 
     d3.select('.legend')
       .attr('class', 'legend legend-' + order)
-      .transition()
       .style('visibility', 'visible')
 
     triangleLegend(x, y, container)
@@ -374,13 +366,35 @@ const Radar = function (size, radar) {
       .text(circleKey)
   }
 
+  function showPage (page) {
+    console.log('draw page', page)
+    currentBlipsPage.style('display', () => {
+      return (page === 'current') ? 'flex' : 'none'
+    })
+    searchBlipsPage.style('display', () => {
+      return (page === 'search') ? 'flex' : 'none'
+    })
+    searchBlipsHistory.style('display', () => {
+      return (page === 'history') ? 'flex' : 'none'
+    })
+
+    switch (page) {
+      case 'current':
+        redrawFullRadar()
+        break
+      case 'search':
+        redrawFullSearch()
+        break
+      case 'history':
+        redrawFullHistory()
+        break
+    }
+  }
+
   function redrawFullRadar () {
-    removeHomeLink()
     removeRadarLegend()
     tip.hide()
     d3.selectAll('g.blip-link').attr('opacity', 1.0)
-
-    svg.style('left', 0).style('right', 0)
 
     d3.selectAll('.button')
       .classed('selected', false)
@@ -390,17 +404,27 @@ const Radar = function (size, radar) {
     d3.selectAll('.home-link').classed('selected', false)
 
     d3.selectAll('.quadrant-group')
-      .transition()
-      .duration(ANIMATION_DURATION)
       .attr('transform', 'scale(1)')
 
     d3.selectAll('.quadrant-group .blip-link')
-      .transition()
-      .duration(ANIMATION_DURATION)
       .attr('transform', 'scale(1)')
 
     d3.selectAll('.quadrant-group')
       .style('pointer-events', 'auto')
+
+    intro.classed('selected', true)
+  }
+
+  function redrawFullSearch () {
+    d3.selectAll('.button')
+      .classed('selected', false)
+      .classed('full-view', true)
+  }
+
+  function redrawFullHistory () {
+    d3.selectAll('.button')
+      .classed('selected', false)
+      .classed('full-view', true)
   }
 
   function searchBlip (_e, ui) {
@@ -423,43 +447,86 @@ const Radar = function (size, radar) {
       // need to account for the animation time associated with selecting a quadrant
       tip.hide()
 
-      setTimeout(function () {
-        tip.show(blip.name(), group.node())
-      }, ANIMATION_DURATION)
+      tip.show(blip.name(), group.node())
     }
   }
 
   function plotRadarHeader () {
-    header = d3.select('body').insert('header', '#radar')
-    header.append('div')
+    header = d3.select('header')
+    header.selectAll('.input-sheet__logo').remove()
+
+    const title = header.insert('div', '.profile')
       .attr('class', 'radar-title')
-      .append('div')
+
+    title.append('div')
       .attr('class', 'radar-title__text')
-      .append('h1')
+      .append('h2')
       .text(document.title)
       .style('cursor', 'pointer')
-      .on('click', redrawFullRadar)
+      .on('click', () => showPage('current'))
 
-    header.select('.radar-title')
-      .append('div')
+    title.append('div')
       .attr('class', 'radar-title__logo')
       .html('<a href="https://www.thoughtworks.com"> <img src="/images/logo.png" /> </a>')
 
-    buttonsGroup = header.append('div')
+    return header
+  }
+
+  function plotRadarNav () {
+    nav = d3.select('nav')
+
+    nav.append('h1')
+      .text('TECHNOLOGY RADAR')
+      .on('click', () => showPage('current'))
+
+    pageNav = nav.append('div')
+      .classed('page-btn-group', true)
+      .append('button')
+      .classed('button', true)
+      .classed('search', true)
+      .attr('title', 'Browse Radar archives')
+      .text('Search')
+      .on('click', () => showPage('search'))
+
+    buttonsGroup = nav.append('div')
       .classed('buttons-group', true)
 
     quadrantButtons = buttonsGroup.append('div')
       .classed('quadrant-btn--group', true)
 
-    alternativeDiv = header.append('div')
+    alternativeDiv = nav.append('div')
       .attr('id', 'alternative-buttons')
 
-    return header
+    return nav
   }
 
-  function plotQuadrantButtons (quadrants, header) {
+  function plotNavButtons (nav) {
+    const pageNav = d3.select('page-btn-group')
+    pageNav.append('button')
+      .classed('button', true)
+      .classed('search', true)
+      .attr('title', 'Browse Radar archives')
+      .text('Search')
+  }
+
+  function plotRadarMain () {
+    main = d3.select('main')
+      .attr('id', 'radar')
+
+    intro = currentBlipsPage
+      .append('div')
+      .attr('id', 'radar-intro')
+      .classed('selected', true)
+
+    intro.append('div')
+      .text('Welcome')
+
+    return main
+  }
+
+  function plotQuadrantButtons (quadrants) {
     function addButton (quadrant) {
-      radarElement
+      currentBlipsPage
         .append('div')
         .attr('class', 'quadrant-table ' + quadrant.order)
 
@@ -475,20 +542,6 @@ const Radar = function (size, radar) {
       addButton(quadrants[i])
     })
 
-    buttonsGroup.append('div')
-      .classed('print-radar-btn', true)
-      .append('div')
-      .classed('print-radar button no-capitalize', true)
-      .text('Print this radar')
-      .on('click', window.print.bind(window))
-
-    alternativeDiv.append('div')
-      .classed('search-box', true)
-      .append('input')
-      .attr('id', 'auto-complete')
-      .attr('placeholder', 'Search')
-      .classed('search-radar', true)
-
     $('#auto-complete').autocomplete({
       source: _.flatten(_.map(quadrants, function (q, i) {
         return _.map(q.quadrant.blips(), function (b) {
@@ -500,17 +553,99 @@ const Radar = function (size, radar) {
     })
   }
 
-  function plotRadarFooter () {
-    d3.select('body')
-      .insert('div', '#radar-plot + *')
-      .attr('id', 'footer')
-      .append('div')
-      .attr('class', 'footer-content')
-      .append('p')
-      .html('Powered by <a href="https://www.thoughtworks.com"> ThoughtWorks</a>. ' +
-      'By using this service you agree to <a href="https://www.thoughtworks.com/radar/tos">ThoughtWorks\' terms of use</a>. ' +
-      'You also agree to our <a href="https://www.thoughtworks.com/privacy-policy">privacy policy</a>, which describes how we will gather, use and protect any personal data contained in your public Google Sheet. ' +
-      'This software is <a href="https://github.com/thoughtworks/build-your-own-radar">open source</a> and available for download and self-hosting.')
+  function plotSearch () {
+    // searchBlipsFilter = searchBlipsPage.append('div')
+    //   .attr('class', 'filter')
+
+    // searchBlipsFilter.append('div')
+    //   .classed('search-box', true)
+    //   .append('input')
+    //   .attr('id', 'auto-complete')
+    //   .attr('placeholder', 'Search')
+    //   .classed('search-radar', true)
+
+    searchBlipsList = searchBlipsPage.append('ul')
+      .attr('class', 'blips')
+
+    const sortedBlips = radar.getBlips().sort((a, b) => {
+      return a.name().toLowerCase() < b.name().toLowerCase()
+        ? -1
+        : a.name().toLowerCase() > b.name().toLowerCase()
+          ? 1
+          : 0
+    })
+    const alphabetKeys = []
+
+    sortedBlips.forEach((blip, i) => {
+      let section
+      const currentQuadrant = quadrantByName[blip.quadrant()]
+
+      section = blip.name()[0].toUpperCase() >= 'A' ? blip.name()[0].toUpperCase() : 'Special characters & Numerics'
+
+      if (!alphabetKeys.includes(section)) {
+        searchBlipsList.append('h4')
+          .attr('class', 'alphabet-key')
+          .text(section)
+
+        alphabetKeys.push(section)
+      }
+
+      let node = searchBlipsList.append('li')
+        .attr('class', 'blip ')
+        .attr('data-state', blip.state())
+
+      node.append('button')
+        .attr('class', 'blip-history')
+        .text(blip.name())
+        .on('click', () => plotBlipHistory(blip, i))
+
+      node.append('span')
+        .attr('class', `blip-ring blip-ring-${blip.ring().name()} quadrant-${currentQuadrant.tag()} ${currentQuadrant.order}`)
+        .text(blip.ring().name())
+
+      node.append('span')
+        .attr('class', 'blip-date')
+        .text(blip.date())
+      console.log('blip', blip.name(), blip.history())
+    })
+  }
+
+  function plotHistory () {
+    searchBlipsHistory = d3.select('#history')
+  }
+
+  function plotBlipHistory (blip, i) {
+    showPage('history')
+
+    searchBlipsHistory.selectAll('.blip-history').classed('selected', false)
+
+    let selected = searchBlipsHistory.select(`#blip-${i}`).classed('selected', true)
+
+    if (!selected.empty()) return
+
+    selected = searchBlipsHistory.append('div')
+      .attr('id', `blip-${i}`)
+      .classed('blip-history', true)
+      .classed('selected', true)
+
+    selected.append('h2').text(blip.name())
+    const list = selected.append('ul')
+
+    blip.history().forEach((history) => {
+      const current = list.append('li')
+
+      current.append('span')
+        .attr('class', `history-date history-date-${history.date()}`)
+        .text(history.date())
+
+      current.append('h3')
+        .attr('class', `history-ring history-ring-${history.ring().name()}`)
+        .text(history.ring().name())
+
+      current.append('div')
+        .attr('class', 'history-description history-description')
+        .text(history.description())
+    })
   }
 
   function mouseoverQuadrant (order) {
@@ -523,9 +658,9 @@ const Radar = function (size, radar) {
   }
 
   function selectQuadrant (order, startAngle) {
+    showPage('current')
+    intro.classed('selected', false)
     d3.selectAll('.home-link').classed('selected', false)
-    createHomeLink(d3.select('header'))
-
     d3.selectAll('.button').classed('selected', false).classed('full-view', false)
     d3.selectAll('.button.' + order).classed('selected', true)
     d3.selectAll('.quadrant-table').classed('selected', false)
@@ -543,23 +678,15 @@ const Radar = function (size, radar) {
     var translateXAll = (1 - adjustX) / 2 * size * scale / 2 + ((1 - adjustX) / 2 * (1 - scale / 2) * size)
     var translateYAll = (1 + adjustY) / 2 * size * scale / 2
 
-    var moveRight = (1 + adjustX) * (0.8 * window.innerWidth - size) / 2
-    var moveLeft = (1 - adjustX) * (0.8 * window.innerWidth - size) / 2
-
     var blipScale = 3 / 4
     var blipTranslate = (1 - blipScale) / blipScale
 
-    svg.style('left', moveLeft + 'px').style('right', moveRight + 'px')
     d3.select('.quadrant-group-' + order)
-      .transition()
-      .duration(ANIMATION_DURATION)
       .attr('transform', 'translate(' + translateX + ',' + translateY + ')scale(' + scale + ')')
     d3.selectAll('.quadrant-group-' + order + ' .blip-link text').each(function () {
       var x = d3.select(this).attr('x')
       var y = d3.select(this).attr('y')
       d3.select(this.parentNode)
-        .transition()
-        .duration(ANIMATION_DURATION)
         .attr('transform', 'scale(' + blipScale + ')translate(' + blipTranslate * x + ',' + blipTranslate * y + ')')
     })
 
@@ -567,8 +694,6 @@ const Radar = function (size, radar) {
       .style('pointer-events', 'auto')
 
     d3.selectAll('.quadrant-group:not(.quadrant-group-' + order + ')')
-      .transition()
-      .duration(ANIMATION_DURATION)
       .style('pointer-events', 'none')
       .attr('transform', 'translate(' + translateXAll + ',' + translateYAll + ')scale(0)')
 
@@ -578,7 +703,19 @@ const Radar = function (size, radar) {
   }
 
   self.init = function () {
-    radarElement = d3.select('body').append('div').attr('id', 'radar')
+    currentBlipsPage = d3.select('main')
+      .attr('id', 'radar')
+      .append('div')
+      .attr('id', 'current')
+
+    searchBlipsPage = d3.select('#radar')
+      .append('div')
+      .attr('id', 'search')
+
+    searchBlipsHistory = d3.select('#radar')
+      .append('div')
+      .attr('id', 'history')
+
     return self
   }
 
@@ -594,7 +731,7 @@ const Radar = function (size, radar) {
       .append('div')
       .classed('multiple-sheet-button-group', true)
 
-    alternativeSheetButton.append('p').text('Choose a sheet to populate radar')
+    // alternativeSheetButton.append('p').text('Choose a sheet to populate radar')
     alternatives.forEach(function (alternative) {
       alternativeSheetButton
         .append('div:a')
@@ -617,27 +754,86 @@ const Radar = function (size, radar) {
     quadrants = radar.quadrants()
     alternatives = radar.getAlternatives()
     currentSheet = radar.getCurrentSheet()
-    var header = plotRadarHeader()
+    header = plotRadarHeader()
+    nav = plotRadarNav()
+    main = plotRadarMain()
 
     plotAlternativeRadars(alternatives, currentSheet)
 
-    plotQuadrantButtons(quadrants, header)
+    plotNavButtons(nav)
+    plotQuadrantButtons(quadrants)
 
-    radarElement.style('height', size + 14 + 'px')
-    svg = radarElement.append('svg').call(tip)
+    currentBlipsPage.style('height', size + 20 + 'px')
+    svg = currentBlipsPage.append('svg').call(tip)
     svg.attr('id', 'radar-plot').attr('width', size).attr('height', size + 14)
 
     _.each(quadrants, function (quadrant) {
+      quadrantByName[quadrant.quadrant.name()] = { ...quadrant.quadrant, order: quadrant.order }
       var quadrantGroup = plotQuadrant(rings, quadrant)
       plotLines(quadrantGroup, quadrant)
       plotTexts(quadrantGroup, rings, quadrant)
       plotBlips(quadrantGroup, rings, quadrant)
     })
 
-    plotRadarFooter()
+    plotSearch()
+    plotHistory()
+    showPage('current')
   }
 
   return self
 }
 
 module.exports = Radar
+
+/**
+ * Pure svg markup radar 500 x 500
+ * ```xml
+<svg width="500" height="500" viewBox="0 0 500 500">
+    <circle cx="250" cy="250" r="250" fill="#eee" mask="url(#quadrant-mask)"></circle>
+    <circle cx="250" cy="250" r="219" fill="#dadada" mask="url(#quadrant-mask)"></circle>
+    <circle cx="250" cy="250" r="172" fill="#cacaca" mask="url(#quadrant-mask)"></circle>
+    <circle cx="250" cy="250" r="110" fill="#bababa" mask="url(#quadrant-mask)"></circle>
+    <mask id="quadrant-mask">
+        <rect x="0" y="0" width="245" height="245" fill="white"></rect>
+        <rect x="0" y="255" width="245" height="245" fill="white"></rect>
+        <rect x="255" y="0" width="245" height="245" fill="white"></rect>
+        <rect x="255" y="255" width="245" height="245" fill="white"></rect>
+    </mask>
+    <text class="line-text" y="254" x="15.625" text-anchor="middle">hold</text>
+    <text class="line-text" y="254" x="54.6875" text-anchor="middle">assess</text>
+    <text class="line-text" y="254" x="110.1875" text-anchor="middle">trial</text>
+    <text class="line-text" y="254" x="196.125" text-anchor="middle">adopt</text>
+    <text class="line-text" y="254" x="303.875" text-anchor="middle">adopt</text>
+    <text class="line-text" y="254" x="389.8125" text-anchor="middle">trial</text>
+    <text class="line-text" y="254" x="445.3125" text-anchor="middle">assess</text>
+    <text class="line-text" y="254" x="484.375" text-anchor="middle">hold</text>
+    <g transform="translate(20,2.5)">
+      <polygon points="265,260 260,270 270,270" translate="" class="triangle" style="stroke: green; stroke-width: 10; stroke-linejoin: round;" stroke="green"></polygon>
+    </g>
+    <polygon points="0,-4 -3.5,4 3.5,4" transform="translate(230,265)" class="triangle" style="stroke: green; stroke-width: 10; stroke-linejoin: round;" stroke="green"></polygon>
+    <polygon points="0,-12 -10.5,6 10.5,6" transform="translate(230,265)" class="triangle" style="stroke: green; fill: green; stroke-width: 5; stroke-linejoin: round;" stroke="green"></polygon>
+    <polygon points="0,-10 -8.75,5 8.75,5" transform="translate(230,265)" class="triangle" style="stroke: green; fill: green; stroke-width: 5; stroke-linejoin: round;" stroke="green"></polygon>
+</svg>
+<svg width="500" height="500" viewBox="0 0 500 500">
+    <circle cx="250" cy="250" r="250" fill="#eee" mask="url(#quadrant-mask)"></circle>
+    <circle cx="250" cy="250" r="219" fill="#dadada" mask="url(#quadrant-mask)"></circle>
+    <circle cx="250" cy="250" r="172" fill="#cacaca" mask="url(#quadrant-mask)"></circle>
+    <circle cx="250" cy="250" r="110" fill="#bababa" mask="url(#quadrant-mask)"></circle>
+    <mask id="quadrant-mask">
+        <rect x="0" y="0" width="245" height="245" fill="white"></rect>
+        <rect x="0" y="255" width="245" height="245" fill="white"></rect>
+        <rect x="255" y="0" width="245" height="245" fill="white"></rect>
+        <rect x="255" y="255" width="245" height="245" fill="white"></rect>
+    </mask>
+    <text class="line-text" y="254" x="15.625" text-anchor="middle">hold</text>
+    <text class="line-text" y="254" x="54.6875" text-anchor="middle">assess</text>
+    <text class="line-text" y="254" x="110.1875" text-anchor="middle">trial</text>
+    <text class="line-text" y="254" x="196.125" text-anchor="middle">adopt</text>
+    <text class="line-text" y="254" x="303.875" text-anchor="middle">adopt</text>
+    <text class="line-text" y="254" x="389.8125" text-anchor="middle">trial</text>
+    <text class="line-text" y="254" x="445.3125" text-anchor="middle">assess</text>
+    <text class="line-text" y="254" x="484.375" text-anchor="middle">hold</text>
+</svg>
+
+```
+*/

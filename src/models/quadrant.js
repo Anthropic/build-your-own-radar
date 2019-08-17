@@ -1,11 +1,16 @@
 const Quadrant = function (name) {
-  var self, blips
+  var self, blips, tag
 
   self = {}
   blips = []
+  tag = name.replace(/\s/g, '-').replace(/\&/g, 'and').replace(/\'\"\(\)/g, '')
 
   self.name = function () {
     return name
+  }
+
+  self.tag = function () {
+    return tag
   }
 
   self.add = function (newBlips) {

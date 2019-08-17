@@ -169,3 +169,13 @@ npm install && npm rebuild node-sass && npm run dev
 ```
 
 After building it will start on `localhost:8080`
+
+#### Testing api calls
+
+```console
+gapi.client.sheets.spreadsheets.values.get({
+  spreadsheetId: "put your id here",
+  range: "you sheet name!your range" // for example "My SHeet!A1:AA"
+})
+.then((...result) => console.log("GSHHET RESULT", result))
+```

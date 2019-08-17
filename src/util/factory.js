@@ -9,6 +9,7 @@ const _ = {
 }
 
 const InputSanitizer = require('./inputSanitizer')
+const BlipCache = require('./blipCache')
 const Radar = require('../models/radar')
 const Quadrant = require('../models/quadrant')
 const Ring = require('../models/ring')
@@ -24,10 +25,11 @@ const ExceptionMessages = require('./exceptionMessages')
 const GoogleAuth = require('./googleAuth')
 const LoginForm = require('./loginForm')
 const ProfileMenu = require('./profileMenu')
+let sheetBlips;
 
 const USE_AUTHENTICATION = process.env.USE_AUTHENTICATION
-const RING_LABELS = (process.env.RING_LABELS || "").split(',')
-const SEGMENT_LABELS = process.env.SEGMENT_LABELS
+const RING_LABELS = (process.env.RING_LABELS || '').split(',')
+// const SEGMENT_LABELS = process.env.SEGMENT_LABELS
 
 const plotRadar = function (title, blips, currentRadarName, alternativeRadars) {
   if (title.endsWith('.csv')) {
@@ -39,6 +41,9 @@ const plotRadar = function (title, blips, currentRadarName, alternativeRadars) {
   var rings = _.map(_.uniqBy(blips, 'ring'), 'ring')
   var ringMap = {}
   var maxRings = 4
+  var allBlips = []
+  var allBlipNames = []
+  var blipByName = {}
 
   _.each(rings, function (ringName, i) {
     if (i === maxRings) {
@@ -49,16 +54,24 @@ const plotRadar = function (title, blips, currentRadarName, alternativeRadars) {
 
   var segments = {}
   _.each(blips, function (blip) {
-    if (blip.state && blip.state.toLowerCase() === 'archived') return
     if (!segments[blip.quadrant]) {
-      segments[blip.quadrant] = new Quadrant(_.capitalize(blip.quadrant))
+      segments[blip.quadrant] = new Quadrant(blip.quadrant)
     }
-    const newState = blip.state && blip.state.toLowerCase() === 'new'
-    const isNew = newState || blip.isNew.toLowerCase() === 'true'
-    segments[blip.quadrant].add(new Blip(blip.name, ringMap[blip.ring], isNew, blip.topic, blip.description))
+
+    const processedBlip = new Blip(blip, ringMap[blip.ring])
+    if (!allBlipNames.includes(processedBlip.name())) {
+      allBlipNames.push(processedBlip.name())
+      blipByName[processedBlip.name()] = processedBlip
+      allBlips.push(blipByName[processedBlip.name()])
+    }
+    blipByName[processedBlip.name()].addHistory(processedBlip)
+
+    if (blip.state && blip.state.toLowerCase() === 'archived') return
+    segments[blip.quadrant].add(processedBlip)
   })
 
   var radar = new Radar(RING_LABELS)
+  radar.setBlips(allBlips)
   _.each(segments, function (segment) {
     radar.addQuadrant(segment)
   })
@@ -73,9 +86,7 @@ const plotRadar = function (title, blips, currentRadarName, alternativeRadars) {
     radar.setCurrentSheet(currentRadarName)
   }
 
-  var size = (window.innerHeight - 133) < 620 ? 620 : window.innerHeight - 133
-
-  new GraphingRadar(size, radar).init().plot()
+  new GraphingRadar(500, radar).init().plot()
 }
 
 const GoogleSheet = function (sheetReference, sheetName) {
@@ -117,6 +128,9 @@ const GoogleSheet = function (sheetReference, sheetName) {
             const objectArray = getSheetData(header, all)
             all.shift()
             var blips = _.map(objectArray, new InputSanitizer().sanitize)
+
+            sheetBlips = new BlipCache(blips)
+
             plotRadar(sheetName, blips)
           })
       },
@@ -177,6 +191,9 @@ const GoogleSheet = function (sheetReference, sheetName) {
     const all = values
     const header = all.shift()
     var blips = _.map(all, blip => new InputSanitizer().sanitizeForProtectedSheet(blip, header))
+
+    sheetBlips.push(...blips)
+
     plotRadar(documentTitle + ' - ' + sheetName, blips, sheetName, sheetNames)
   }
 
@@ -219,6 +236,7 @@ const CSVDocument = function (url) {
       contentValidator.verifyContent()
       contentValidator.verifyHeaders()
       var blips = _.map(data, new InputSanitizer().sanitize)
+
       plotRadar(FileName(url), blips, 'CSV File', [])
     } catch (exception) {
       plotErrorMessage(exception)
@@ -256,9 +274,17 @@ const GoogleSheetInput = function () {
   }
 
   self.render = function () {
+    const USE_GOOGLESHEET = process.env.USE_GOOGLESHEET
+    const GOOGLE_SHEET = process.env.GOOGLE_SHEET
     var domainName = DomainName(window.location.search.substring(1))
     var queryString = window.location.href.match(/sheetId(.*)/)
-    var queryParams = queryString ? QueryParams(queryString[0]) : {}
+    var queryParams = queryString ? QueryParams(queryString[0]) : {};
+
+    if (USE_GOOGLESHEET) {
+      domainName = DomainName(GOOGLE_SHEET.substring(1));
+      queryString = GOOGLE_SHEET;
+      queryParams = Object.assign({}, queryParams, { sheetId: GOOGLE_SHEET });
+    }
 
     self.cleanUpRender()
     let sheet
@@ -316,7 +342,7 @@ function setDocumentTitle () {
 }
 
 function plotLoading (content) {
-  content = d3.select('body')
+  content = d3.select('main')
     .append('div')
     .attr('class', 'loading')
     .append('div')
@@ -332,8 +358,8 @@ function plotLoading (content) {
 }
 
 function plotLogo (content) {
-  const header = content.append('div')
-    .attr('class', 'input-sheet__header')
+  const header = d3.select('header')
+
   const logo = header
     .append('div')
     .attr('class', 'input-sheet__logo')
@@ -344,10 +370,9 @@ function plotLogo (content) {
 }
 
 function plotFooter (content) {
-  content
-    .append('div')
-    .attr('id', 'footer')
-    .append('div')
+  const footer = d3.select('footer')
+
+  footer.append('div')
     .attr('class', 'footer-content')
     .append('p')
     .html(`Powered by <a href="https://www.thoughtworks.com"> ThoughtWorks</a>.

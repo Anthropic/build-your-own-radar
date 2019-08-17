@@ -50,7 +50,11 @@ describe('InputSanitizer', function () {
 })
 
 describe('Input Santizer for Protected sheet', function () {
-  var sanitizer, rawBlip, blip, header
+  let sanitizer
+  let rawBlip
+  let blip
+  let header
+
   beforeAll(function () {
     sanitizer = new InputSanitizer()
     header = [

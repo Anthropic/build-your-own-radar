@@ -7,19 +7,20 @@ const _ = {
   sortBy: require('lodash/sortBy')
 }
 
-const Radar = function () {
-  var self, quadrants, blipNumber, addingQuadrant, alternatives, currentSheetName
+const Radar = function (ringLabels) {
+  var self, quadrants, blipNumber, addingQuadrant, alternatives, currentSheetName, allBlips
 
   blipNumber = 0
   addingQuadrant = 0
   quadrants = [
-    { order: 'first', startAngle: 90 },
-    { order: 'second', startAngle: 0 },
+    { order: 'first', startAngle: 0 },
+    { order: 'second', startAngle: 90 },
     { order: 'third', startAngle: -90 },
     { order: 'fourth', startAngle: -180 }
   ]
   alternatives = []
   currentSheetName = ''
+
   self = {}
 
   function setNumbers (blips) {
@@ -34,6 +35,14 @@ const Radar = function () {
 
   self.getAlternatives = function () {
     return alternatives
+  }
+
+  self.setBlips = function (blips) {
+    allBlips = blips
+  }
+
+  self.getBlips = function () {
+    return allBlips
   }
 
   self.setCurrentSheet = function (sheetName) {
@@ -59,20 +68,41 @@ const Radar = function () {
     return _.map(quadrants, 'quadrant')
   }
 
-  function allBlips () {
-    return allQuadrants().reduce(function (blips, quadrant) {
+  function currentBlips () {
+    return allQuadrants().reduce((blips, quadrant) => {
       return blips.concat(quadrant.blips())
     }, [])
   }
 
   self.rings = function () {
-    return _.sortBy(_.map(_.uniqBy(allBlips(), function (blip) {
-      return blip.ring().name()
-    }), function (blip) {
-      return blip.ring()
-    }), function (ring) {
-      return ring.order()
-    })
+    // return RING_LABELS.map((label, i) => {
+    //   return {
+    //     name () {
+    //       return label
+    //     },
+    //     order () {
+    //       return i
+    //     }
+    //   }
+    // })
+
+    var rings = _.sortBy(
+      _.map(
+        _.uniqBy(
+          currentBlips(),
+          (blip) => {
+            return blip.ring().name()
+          }
+        ),
+        (blip) => {
+          return blip.ring()
+        }
+      ),
+      (ring) => {
+        return ring.order()
+      }
+    )
+    return rings
   }
 
   self.quadrants = function () {

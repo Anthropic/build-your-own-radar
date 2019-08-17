@@ -23,19 +23,23 @@ const InputSanitizer = function () {
   function trimWhiteSpaces (blip) {
     var processedBlip = {}
     _.forOwn(blip, function (value, key) {
-      processedBlip[key.trim()] = value.trim()
+      processedBlip[key.trim()] = value == null ? undefined : value.trim()
     })
     return processedBlip
   }
 
   var self = {}
   self.sanitize = function (rawBlip) {
-    var blip = trimWhiteSpaces(rawBlip)
-    blip.description = sanitizeHtml(blip.description, relaxedOptions)
-    blip.name = sanitizeHtml(blip.name, restrictedOptions)
-    blip.isNew = sanitizeHtml(blip.isNew, restrictedOptions)
-    blip.ring = sanitizeHtml(blip.ring, restrictedOptions)
-    blip.quadrant = sanitizeHtml(blip.quadrant, restrictedOptions)
+    var blip = {}
+    rawBlip = trimWhiteSpaces(rawBlip)
+
+    blip.date = sanitizeHtml(rawBlip.date, restrictedOptions)
+    blip.description = sanitizeHtml(rawBlip.description, relaxedOptions)
+    blip.name = sanitizeHtml(rawBlip.name, restrictedOptions)
+    blip.state = sanitizeHtml(rawBlip.state, restrictedOptions)
+    blip.isNew = sanitizeHtml(rawBlip.isNew, restrictedOptions)
+    blip.ring = sanitizeHtml(rawBlip.ring, restrictedOptions)
+    blip.quadrant = sanitizeHtml(rawBlip.quadrant, restrictedOptions)
 
     return blip
   }
