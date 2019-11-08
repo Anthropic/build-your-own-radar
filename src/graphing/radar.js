@@ -21,9 +21,12 @@ const Radar = function (size, radar) {
   let header
   let main
   let nav
+  let pageNav
   let quadrantByName = {}
+  let quadrantByOrder = {}
   let intro
   let alternativeDiv
+  let sortedBlips
 
   const tip = d3tip().attr('class', 'd3-tip').html(function (text) {
     return text
@@ -36,6 +39,19 @@ const Radar = function (size, radar) {
     }
     return 'n'
   })
+
+  sortedBlips = radar.getBlips()
+    .sort((a, b) => {
+      return a.name().toLowerCase() < b.name().toLowerCase()
+        ? -1
+        : a.name().toLowerCase() > b.name().toLowerCase()
+          ? 1
+          : 0
+    })
+    .map((blip, i) => {
+      blip.setOrder(i)
+      return blip
+    })
 
   var ringCalculator = new RingCalculator(radar.rings().length, center())
 
@@ -79,7 +95,7 @@ const Radar = function (size, radar) {
       .attr('class', 'quadrant-group quadrant-group-' + quadrant.order)
       .on('mouseover', mouseoverQuadrant.bind({}, quadrant.order))
       .on('mouseout', mouseoutQuadrant.bind({}, quadrant.order))
-      .on('click', selectQuadrant.bind({}, quadrant.order, quadrant.startAngle))
+      .on('click', () => setHash(`current/${quadrant.order}/${quadrant.startAngle}`))
 
     rings.forEach(function (ring, i) {
       var arc = d3.arc()
@@ -248,6 +264,7 @@ const Radar = function (size, radar) {
     var y = coordinates[1]
 
     var group = quadrantGroup.append('g').attr('class', 'blip-link').attr('id', 'blip-link-' + blip.number())
+      .on('click', clickBlip)
 
     if (blip.isNew()) {
       triangle(blip, x, y, order, group)
@@ -274,9 +291,17 @@ const Radar = function (size, radar) {
     var blipItemDescription = blipListItem.append('div')
       .attr('id', 'blip-description-' + blip.number())
       .attr('class', 'blip-item-description')
+
     if (blip.description()) {
       blipItemDescription.append('p').html(blip.description())
     }
+
+    var blipItemDescriptionWrapper = blipItemDescription.append('div')
+      .attr('class', 'blip-description-nav')
+    blipItemDescriptionWrapper.append('button')
+      .attr('class', 'blip-list-item-history')
+      .on('click', () => showPage(`history/${blip.tag()}`))
+      .text('History')
 
     var mouseOver = function () {
       d3.selectAll('g.blip-link').attr('opacity', 0.3)
@@ -329,7 +354,7 @@ const Radar = function (size, radar) {
     }
 
     if (order === 'second') {
-      x = 4 * size / 5
+      x = 4 * size / 5 - 20
       y = 1 * size / 5
     }
 
@@ -339,7 +364,7 @@ const Radar = function (size, radar) {
     }
 
     if (order === 'fourth') {
-      x = 4 * size / 5
+      x = 4 * size / 5 - 20
       y = 4 * size / 5
     }
 
@@ -366,8 +391,13 @@ const Radar = function (size, radar) {
       .text(circleKey)
   }
 
-  function showPage (page) {
-    console.log('draw page', page)
+  function setHash (path) {
+    window.location.hash = `/${path}`
+  }
+
+  function showPage (path) {
+    const [page, ...sections] = path.split('/')
+    console.log('draw page', page, path, sections)
     currentBlipsPage.style('display', () => {
       return (page === 'current') ? 'flex' : 'none'
     })
@@ -381,13 +411,27 @@ const Radar = function (size, radar) {
     switch (page) {
       case 'current':
         redrawFullRadar()
+        if (sections && sections.length >= 1 && ['first', 'second', 'third', 'fourth'].includes(sections[0])) {
+          const selectedQuadrant = quadrantByOrder[sections[0]]
+          selectQuadrant(selectedQuadrant.order, selectedQuadrant.startAngle)
+        }
         break
       case 'search':
         redrawFullSearch()
         break
       case 'history':
         redrawFullHistory()
+        if (sections && sections.length) {
+          const found = sortedBlips.find((blip) => blip.tag() === sections[0])
+          if (found) {
+            plotBlipHistory(found)
+          }
+        } else {
+          showPage('search')
+        }
         break
+      default:
+        showPage('current')
     }
   }
 
@@ -430,7 +474,8 @@ const Radar = function (size, radar) {
   function searchBlip (_e, ui) {
     const { blip, quadrant } = ui.item
     const isQuadrantSelected = d3.select('div.button.' + quadrant.order).classed('selected')
-    selectQuadrant.bind({}, quadrant.order, quadrant.startAngle)()
+    // selectQuadrant.bind({}, quadrant.order, quadrant.startAngle)()
+    setHash(`current/${quadrant.order}`)
     const selectedDesc = d3.select('#blip-description-' + blip.number())
     d3.select('.blip-item-description.expanded').node() !== selectedDesc.node() &&
         d3.select('.blip-item-description.expanded').classed('expanded', false)
@@ -463,11 +508,7 @@ const Radar = function (size, radar) {
       .append('h2')
       .text(document.title)
       .style('cursor', 'pointer')
-      .on('click', () => showPage('current'))
-
-    title.append('div')
-      .attr('class', 'radar-title__logo')
-      .html('<a href="https://www.thoughtworks.com"> <img src="/images/logo.png" /> </a>')
+      .on('click', () => setHash('current'))
 
     return header
   }
@@ -477,7 +518,7 @@ const Radar = function (size, radar) {
 
     nav.append('h1')
       .text('TECHNOLOGY RADAR')
-      .on('click', () => showPage('current'))
+      .on('click', () => setHash('current'))
 
     pageNav = nav.append('div')
       .classed('page-btn-group', true)
@@ -486,7 +527,7 @@ const Radar = function (size, radar) {
       .classed('search', true)
       .attr('title', 'Browse Radar archives')
       .text('Search')
-      .on('click', () => showPage('search'))
+      .on('click', () => setHash('search'))
 
     buttonsGroup = nav.append('div')
       .classed('buttons-group', true)
@@ -498,15 +539,6 @@ const Radar = function (size, radar) {
       .attr('id', 'alternative-buttons')
 
     return nav
-  }
-
-  function plotNavButtons (nav) {
-    const pageNav = d3.select('page-btn-group')
-    pageNav.append('button')
-      .classed('button', true)
-      .classed('search', true)
-      .attr('title', 'Browse Radar archives')
-      .text('Search')
   }
 
   function plotRadarMain () {
@@ -535,7 +567,7 @@ const Radar = function (size, radar) {
         .text(quadrant.quadrant.name())
         .on('mouseover', mouseoverQuadrant.bind({}, quadrant.order))
         .on('mouseout', mouseoutQuadrant.bind({}, quadrant.order))
-        .on('click', selectQuadrant.bind({}, quadrant.order, quadrant.startAngle))
+        .on('click', () => setHash(`current/${quadrant.order}`))
     }
 
     _.each([0, 1, 2, 3], function (i) {
@@ -567,13 +599,6 @@ const Radar = function (size, radar) {
     searchBlipsList = searchBlipsPage.append('ul')
       .attr('class', 'blips')
 
-    const sortedBlips = radar.getBlips().sort((a, b) => {
-      return a.name().toLowerCase() < b.name().toLowerCase()
-        ? -1
-        : a.name().toLowerCase() > b.name().toLowerCase()
-          ? 1
-          : 0
-    })
     const alphabetKeys = []
 
     sortedBlips.forEach((blip, i) => {
@@ -583,7 +608,7 @@ const Radar = function (size, radar) {
       section = blip.name()[0].toUpperCase() >= 'A' ? blip.name()[0].toUpperCase() : 'Special characters & Numerics'
 
       if (!alphabetKeys.includes(section)) {
-        searchBlipsList.append('h4')
+        searchBlipsList.append('h3')
           .attr('class', 'alphabet-key')
           .text(section)
 
@@ -594,10 +619,10 @@ const Radar = function (size, radar) {
         .attr('class', 'blip ')
         .attr('data-state', blip.state())
 
-      node.append('button')
+      node.append('h4')
         .attr('class', 'blip-history')
         .text(blip.name())
-        .on('click', () => plotBlipHistory(blip, i))
+        .on('click', () => setHash(`history/${blip.tag()}`))
 
       node.append('span')
         .attr('class', `blip-ring blip-ring-${blip.ring().name()} quadrant-${currentQuadrant.tag()} ${currentQuadrant.order}`)
@@ -614,11 +639,12 @@ const Radar = function (size, radar) {
     searchBlipsHistory = d3.select('#history')
   }
 
-  function plotBlipHistory (blip, i) {
-    showPage('history')
+  function plotBlipHistory (blip) {
+    const i = blip.order()
 
     searchBlipsHistory.selectAll('.blip-history').classed('selected', false)
 
+    let isBlipCurrent = true
     let selected = searchBlipsHistory.select(`#blip-${i}`).classed('selected', true)
 
     if (!selected.empty()) return
@@ -627,18 +653,33 @@ const Radar = function (size, radar) {
       .attr('id', `blip-${i}`)
       .classed('blip-history', true)
       .classed('selected', true)
+      .attr('data-blip-state', blip.state())
+
+    if (blip.state().toLowerCase() === 'archived') {
+      selected.append('div')
+        .classed('blip-archived', true)
+        .text(`
+          This blip is archived and not on the current radar, if its latest update 
+          was within six months, it is likely to be considered as the same status 
+        `)
+    }
 
     selected.append('h2').text(blip.name())
+
     const list = selected.append('ul')
 
     blip.history().forEach((history) => {
       const current = list.append('li')
+      const state = history.state().toLowerCase()
+      isBlipCurrent = state === 'archived' ? false : isBlipCurrent
 
-      current.append('span')
-        .attr('class', `history-date history-date-${history.date()}`)
+      const meta = current.append('span').classed('meta', true).classed('history-latest', isBlipCurrent)
+
+      meta.append('span')
+        .attr('class', `history-date history-date-${history.date()} history-state-${state}`)
         .text(history.date())
 
-      current.append('h3')
+      meta.append('h3')
         .attr('class', `history-ring history-ring-${history.ring().name()}`)
         .text(history.ring().name())
 
@@ -658,7 +699,6 @@ const Radar = function (size, radar) {
   }
 
   function selectQuadrant (order, startAngle) {
-    showPage('current')
     intro.classed('selected', false)
     d3.selectAll('.home-link').classed('selected', false)
     d3.selectAll('.button').classed('selected', false).classed('full-view', false)
@@ -747,6 +787,11 @@ const Radar = function (size, radar) {
     })
   }
 
+  function processHash () {
+    const [, ...path] = window.location.hash.split('/')
+    showPage(path.join('/'))
+  }
+
   self.plot = function () {
     var rings, quadrants, alternatives, currentSheet
 
@@ -760,15 +805,16 @@ const Radar = function (size, radar) {
 
     plotAlternativeRadars(alternatives, currentSheet)
 
-    plotNavButtons(nav)
     plotQuadrantButtons(quadrants)
 
-    currentBlipsPage.style('height', size + 20 + 'px')
     svg = currentBlipsPage.append('svg').call(tip)
     svg.attr('id', 'radar-plot').attr('width', size).attr('height', size + 14)
 
     _.each(quadrants, function (quadrant) {
-      quadrantByName[quadrant.quadrant.name()] = { ...quadrant.quadrant, order: quadrant.order }
+      const quadrantWithOrder = { ...quadrant.quadrant, order: quadrant.order, startAngle: quadrant.startAngle }
+      quadrantByName[quadrant.quadrant.name()] = quadrantWithOrder
+      quadrantByOrder[quadrant.order] = quadrantWithOrder
+
       var quadrantGroup = plotQuadrant(rings, quadrant)
       plotLines(quadrantGroup, quadrant)
       plotTexts(quadrantGroup, rings, quadrant)
@@ -777,7 +823,9 @@ const Radar = function (size, radar) {
 
     plotSearch()
     plotHistory()
-    showPage('current')
+
+    window.onhashchange = processHash
+    processHash()
   }
 
   return self

@@ -184,6 +184,10 @@ body {
     position: relative;
     padding: 25px 0;
 
+    #current {
+      height: fit-content;
+      min-height: 550px;
+    }
 
     &.first .quadrant-table__name {
       color: white;
@@ -344,25 +348,43 @@ body {
           }
 
           .blip-item-description {
+            width: 300px;
+            padding: 0 0 0 25px;
             max-height: 0;
             overflow: hidden;
-            width: 300px;
 
             p {
               margin: 0;
-              border-top: 1px solid rgb(119, 119, 119);
-              border-bottom: 1px solid rgb(119, 119, 119);
-              padding: 20px;
+              padding: 20px 0 0 0;
               color: $grey-text;
               font-weight: 100;
               font-size: 14px;
             }
+
+            .blip-description-nav {
+              padding: 25px 0;
+              
+              .blip-list-item-history {
+                padding: 5px;
+                background-color: $grey;
+                border: none;
+                cursor: pointer;
+  
+                &:hover {
+                  color: white;
+                  background-color: #333;
+                }
+              }
+            }
+
 
             transition: max-height 0.2s ease;
 
             &.expanded {
               transition: max-height 0.5s ease 0.2s;
               max-height: 1000px;
+              border-top: 1px solid #777;
+              border-bottom: 1px solid #777;
             }
           }
         }
@@ -377,7 +399,7 @@ body {
         display: grid;
         grid-auto-columns: 50% 50%;
 
-        h4 {
+        h3 {
           grid-column: auto / span 2;
           font-weight: 100;
           font-size: 24px;
@@ -387,6 +409,13 @@ body {
           &:first-child {
             margin-top: 0;
           }
+        }
+
+        h4 {
+          display: inline-block;
+          font-weight: 400;
+          font-size: 18px;
+          margin: 0 10px 0 0;
         }
 
         li.blip {
@@ -428,11 +457,82 @@ body {
       }
     }
     #history {
-      .blip-history{
+      .blip-archived {
+        font-size: 12px;
+        font-weight: 200;
+        padding: 10px;
+        background-color: beige;
+        margin-bottom: 25px;
+
+        &:before {
+          content: 'Note: ';
+          font-weight: 600;
+        }
+      }
+
+      .blip-history {
         display: none;
+        width: 100%;
+
+        h2 {
+          display: block;
+          border-bottom: 1px solid #000;
+          font-size: 28px;
+          font-weight: 400;
+          padding-bottom: 12.5px;
+        }
 
         &.selected {
           display: block;
+        }
+
+        ul {
+          width: 100%;
+          margin: 0;
+          padding: 0;
+          list-style: none;
+          display: grid;
+          grid-auto-columns: 50% 50%;
+
+          li {
+            display: flex;
+            flex-direction: column;
+            margin: 0;
+            padding: 0;
+            
+
+            .meta {
+              display: flex;
+              flex-direction: row;
+
+              &.history-latest:after {
+                content: 'current';
+                align-self: center;
+                padding-left: 10px;
+                color: red;
+              }
+
+              .history-date {
+                font-size: 15px;
+                font-style: italic;
+                margin-right: 10px;
+                padding: 5px;
+                color: white;
+                background-color: #666;
+              }
+
+              h3 {
+                text-transform: uppercase;
+                font-weight: 600;
+                margin: 0;
+                padding: 0;
+              }
+            }
+            .history-description {
+              font-weight: 200;
+              padding: 10px 0 25px;
+            }
+          }
         }
       }
     }
