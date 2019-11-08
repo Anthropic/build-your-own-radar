@@ -6,9 +6,15 @@ const Blip = function (blip, ring) {
 
   self.width = IDEAL_BLIP_WIDTH
   self.blip = blip
+  // Add url slug for blip
+  self.blip.tag = blip.name.replace(/\s/g, '-').replace(/&/g, 'and').replace(/'"\(\)/g, '').toLowerCase()
 
   self.name = function () {
     return self.blip.name
+  }
+
+  self.tag = function () {
+    return self.blip.tag
   }
 
   self.topic = function () {
@@ -26,6 +32,10 @@ const Blip = function (blip, ring) {
 
   self.ring = function () {
     return ring
+  }
+
+  self.setOrder = function (i) {
+    self.blip.order = i
   }
 
   self.order = function () {

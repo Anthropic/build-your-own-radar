@@ -3,7 +3,7 @@ const Quadrant = function (name) {
 
   self = {}
   blips = []
-  tag = name.replace(/\s/g, '-').replace(/\&/g, 'and').replace(/\'\"\(\)/g, '')
+  tag = name.replace(/\s/g, '-').replace(/&/g, 'and').replace(/['"()]/g, '')
 
   self.name = function () {
     return name
